@@ -20,3 +20,9 @@ pom.xml.asc
 pom.properties
 /cljs-test-runner-out
 .clj-kondo/
+
+# ClojureDart
+.dart_tool/
+.clojuredart/
+lib/cljd-out/
+test/cljd-out/
