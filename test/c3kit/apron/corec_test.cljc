@@ -1,5 +1,5 @@
 (ns c3kit.apron.corec-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is]]
             [c3kit.apron.corec :as ccc]))
 
 (deftest conjv-test

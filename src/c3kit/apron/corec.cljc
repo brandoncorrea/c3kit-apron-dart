@@ -1,7 +1,7 @@
 (ns c3kit.apron.corec
   "Common core code.  This file should have minimal dependencies.
   Clients should be able to safely :refer :all from this namespace."
-  #?(:clj (:import (java.util UUID))))
+  #?@(:cljd () :clj ((:import (java.util UUID)))))
 
 (defn conjv
   "ensures the seq is a vector before conj-ing"
@@ -18,5 +18,5 @@
   (into #{} (map f) coll))
 
 (defn new-uuid []
-  #?(:clj  (UUID/randomUUID)
-     :cljs (random-uuid)))
+  #?(:clj     (UUID/randomUUID)
+     :default (random-uuid)))

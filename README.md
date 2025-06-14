@@ -27,3 +27,6 @@ Apron consists of necessities that almost any clojure app would find useful.
 
     # Compile and Run JS tests
     clj -M:test:cljs
+
+    # Run the Dart tests
+    clj -M:test:cljd test 

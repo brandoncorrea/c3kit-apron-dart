@@ -1,14 +1,12 @@
 (ns c3kit.apron.schema
   "Defines data structure, coerces, validates."
   (:refer-clojure :exclude [uri?])
-  (:require
-   [c3kit.apron.corec :as ccc]
-   [clojure.edn :as edn]
-   [clojure.string :as str]
-   [clojure.walk :as walk]
-   #?(:cljs [com.cognitect.transit.types])                 ;; https://github.com/cognitect/transit-cljs/issues/41
-   #?(:cljs [cljs-time.core]) ; needed for time
-   ))
+  (:require [c3kit.apron.corec :as ccc]
+            [clojure.edn :as edn]
+            [clojure.string :as str]
+            [clojure.walk :as walk]
+            #?(:cljs [com.cognitect.transit.types])         ;; https://github.com/cognitect/transit-cljs/issues/41
+            #?(:cljs [cljs-time.core])))                    ; needed for time
 
 (comment
   "Schema Sample"
@@ -19,8 +17,7 @@
     :validate    [#(> (count %) 1)]                         ;; single/list of validation fns
     :message     "message describing the field"             ;; coerce failure message (or :validate failure message)
     :validations [{:validate fn :message "msg"}]            ;; multiple validation/message pairs
-    :present     [#(str %)]                                 ;; single/list of presentation fns
-    }})
+    :present     [#(str %)]}})                              ;; single/list of presentation fns
 
 (comment
   ;; Shorthands
@@ -39,9 +36,13 @@
                     (str (subs value-str 0 45) "...")
                     value-str)]
     (ex-info (str "can't coerce " value-str " to " type) {:value value :type type})))
-(defn- validation-ex [message value] (ex-info (or message "is invalid") {:value value}))
 
-(def date #?(:clj java.util.Date :cljs js/Date))
+(defn- validation-ex [message value]
+  (ex-info (or message "is invalid") {:value value}))
+
+(def date #?(:cljd dart:core/DateTime
+             :clj java.util.Date
+             :cljs js/Date))
 
 ;; region ----- Common Validations -----
 
@@ -57,10 +58,14 @@
 
 (defn email? [value] (boolean (re-matches email-pattern value)))
 
-(defn bigdec? [v] #?(:clj (instance? BigDecimal v) :cljs (number? v)))
+(defn bigdec? [v]
+  #?(:clj  (instance? BigDecimal v)
+     :cljs (number? v)
+     :cljd (double? v)))
 
 (defn uri? [value]
   #?(:clj  (instance? java.net.URI value)
+     :cljd (instance? dart:core/Uri value)
      :cljs (string? value)))
 
 (defn is-enum? [enum]
@@ -103,14 +108,17 @@
     (nil? v) nil
     (string? v) (when-not (str/blank? v)
                   (try
-                    #?(:clj (Double/parseDouble v) :cljs (parse! js/parseFloat v))
-                    (catch #?(:clj Exception :cljs :default) _
+                    #?(:cljd (dart:core/double.parse v)
+                       :clj  (Double/parseDouble v)
+                       :cljs (parse! js/parseFloat v))
+                    (catch #?(:clj Exception :cljd Object :cljs :default) _
                       (throw (coerce-ex v "float")))))
     #?@(:clj [(char? v) (-> v str ->float)])
     #?@(:cljs [(js/isNaN v) nil])
     (integer? v) (double v)
-    (#?(:clj float? :cljs number?) v) v
-    (bigdec? v) #?(:clj (.doubleValue v) :cljs v)
+    (#?(:cljd double? :clj float? :cljs number?) v) v
+    #?@(:clj [(bigdec? v) (.doubleValue v)])
+    #?@(:cljs [(bigdec? v) v])
     :else (throw (coerce-ex v "float"))))
 
 (defn ->int [v]
@@ -118,16 +126,18 @@
     (nil? v) nil
     (string? v) (when-not (str/blank? v)
                   (try
-                    #?(:clj  (long (Double/parseDouble v))
+                    #?(:cljd (.toInt (dart:core/double.parse v))
+                       :clj  (long (Double/parseDouble v))
                        :cljs (parse! js/parseInt v))
-                    (catch #?(:clj Exception :cljs :default) _
+                    (catch #?(:clj Exception :cljd Object :cljs :default) _
                       (throw (coerce-ex v "int")))))
     (keyword? v) (throw (coerce-ex v "int"))
     #?@(:clj [(char? v) (-> v str ->int)])
     #?@(:cljs [(js/isNaN v) nil])
     (integer? v) v
-    (#?(:clj float? :cljs number?) v) (long v)
-    (bigdec? v) #?(:clj (.intValue v) :cljs v)
+    (#?(:cljd double? :clj float? :cljs number?) v) (long v)
+    #?@(:clj [(bigdec? v) (.intValue v)])
+    #?@(:cljs [(bigdec? v) v])
     :else (throw (coerce-ex v "int"))))
 
 (defn ->bigdec [v]
@@ -135,23 +145,36 @@
     (nil? v) nil
     (string? v) (when-not (str/blank? v)
                   (try
-                    #?(:clj  (bigdec v)
+                    #?(:cljd (dart:core/double.parse v)
+                       :clj  (bigdec v)
                        :cljs (parse! js/parseFloat v))
-                    (catch #?(:clj Exception :cljs :default) _
+                    (catch #?(:clj Exception :cljd Object :cljs :default) _
                       (throw (coerce-ex v "bigdec")))))
     #?@(:clj [(char? v) (-> v str ->bigdec)])
     #?@(:cljs [(js/isNaN v) nil])
-    (integer? v) #?(:clj (bigdec v) :cljs (double v))
-    (#?(:clj float? :cljs number?) v) #?(:clj (bigdec v) :cljs v)
-    #?(:clj (bigdec? v)) #?(:clj v)
+    (integer? v) #?(:cljd (double v) :clj (bigdec v) :cljs (double v))
+    (#?(:cljd double? :clj float? :cljs number?) v) #?(:cljd v :clj (bigdec v) :cljs v)
+    #?@(:clj [(bigdec? v) v])
     :else (throw (coerce-ex v "bigdec"))))
+
+(defn- date? [v]
+  (instance?
+    #?(:cljd dart:core/DateTime
+       :clj  java.util.Date
+       :cljs js/Date)
+    v))
+
+(defn- date-from-millis [millis-since-epoch]
+  #?(:cljd (dart:core/DateTime.fromMillisecondsSinceEpoch millis-since-epoch .isUtc true)
+     :clj  (doto (java.util.Date.) (.setTime millis-since-epoch))
+     :cljs (doto (js/Date.) (.setTime millis-since-epoch))))
 
 (defn ->date [v]
   (cond
     (nil? v) nil
-    (instance? date v) v
-    (integer? v) (doto (new #?(:clj java.util.Date :cljs js/Date)) (.setTime v))
-    #?(:cljs (instance? goog.date.Date v)) #?(:cljs (js/Date. (.getTime v)))
+    (date? v) v
+    (integer? v) (date-from-millis v)
+    #?@(:cljs [(instance? goog.date.Date v) (js/Date. (.getTime v))])
     (string? v) (cond
                   (str/blank? v) nil
                   (str/starts-with? v "#inst") (edn/read-string v)
@@ -161,26 +184,27 @@
 (defn ->sql-date [v]
   (cond
     (nil? v) nil
-    (instance? #?(:clj java.sql.Date :cljs js/Date) v) v
-    #?(:clj (instance? java.util.Date v)) #?(:clj (java.sql.Date. (.getTime v)))
-    (integer? v) #?(:clj (java.sql.Date. v) :cljs (doto (new js/Date) (.setTime v)))
-    #?(:cljs (instance? goog.date.Date v)) #?(:cljs (js/Date. (.getTime v)))
+    #?(:clj (instance? java.sql.Date v) :default (date? v)) v
+    #?@(:clj [(instance? java.util.Date v) (java.sql.Date. (.getTime v))])
+    (integer? v) #?(:clj (java.sql.Date. v) :default (date-from-millis v))
+    #?@(:cljs [(instance? goog.date.Date v) (js/Date. (.getTime v))])
     (string? v) (cond
                   (str/blank? v) nil
-                  (str/starts-with? v "#inst") #?(:clj (java.sql.Date. (.getTime (edn/read-string v))) :cljs (edn/read-string v))
+                  (str/starts-with? v "#inst") #?(:clj     (java.sql.Date. (.getTime (edn/read-string v)))
+                                                  :default (edn/read-string v))
                   :else (throw (coerce-ex v "sql-date")))
     :else (throw (coerce-ex v "sql-date"))))
 
 (defn ->timestamp [v]
   (cond
     (nil? v) nil
-    (instance? #?(:clj java.sql.Timestamp :cljs js/Date) v) v
-    #?(:clj (instance? java.util.Date v)) #?(:clj (java.sql.Timestamp. (.getTime v)))
-    (integer? v) #?(:clj (java.sql.Timestamp. v) :cljs (doto (new js/Date) (.setTime v)))
-    #?(:cljs (instance? goog.date.Date v)) #?(:cljs (js/Date. (.getTime v)))
+    #?(:clj (instance? java.sql.Timestamp v) :default (date? v)) v
+    #?@(:clj [(instance? java.util.Date v) (java.sql.Timestamp. (.getTime v))])
+    (integer? v) #?(:clj (java.sql.Timestamp. v) :default (date-from-millis v))
+    #?@(:cljs [(instance? goog.date.Date v) (js/Date. (.getTime v))])
     (string? v) (cond
                   (str/blank? v) nil
-                  (str/starts-with? v "#inst") #?(:clj (java.sql.Timestamp. (.getTime (edn/read-string v))) :cljs (edn/read-string v))
+                  (str/starts-with? v "#inst") #?(:clj (java.sql.Timestamp. (.getTime (edn/read-string v))) :default (edn/read-string v))
                   :else (throw (coerce-ex v "timestamp")))
     :else (throw (coerce-ex v "timestamp"))))
 
@@ -188,7 +212,10 @@
   (cond
     (nil? v) nil
     #?@(:clj [(instance? java.net.URI v) v])
-    (string? v) #?(:clj (java.net.URI/create v) :cljs v)
+    #?@(:cljd [(instance? dart:core/Uri v) v])
+    (string? v) #?(:cljd (dart:core/Uri.parse v)
+                   :clj  (java.net.URI/create v)
+                   :cljs v)
     :else (throw (coerce-ex v "uri"))))
 
 (defn- ->map [m]
@@ -204,7 +231,7 @@
   (cond
     (nil? v) nil
     (uuid? v) v
-    (string? v) #?(:clj (java.util.UUID/fromString v) :cljs (uuid v))
+    (string? v) #?(:clj (java.util.UUID/fromString v) :default (uuid v))
     :else (throw (coerce-ex v "uuid"))))
 
 (defn- multiple? [thing]
@@ -230,12 +257,12 @@
   {:any       (constantly true)
    :bigdec    (nil?-or bigdec?)
    :boolean   (nil?-or boolean?)
-   :date      (nil?-or #?(:clj #(instance? java.sql.Date %) :cljs #(instance? date %)))
-   :double    (nil?-or #?(:clj float? :cljs number?))
-   :float     (nil?-or #?(:clj float? :cljs number?))
+   :date      (nil?-or #(instance? #?(:clj java.sql.Date :cljs date :cljd dart:core/DateTime) %))
+   :double    (nil?-or #?(:cljs number? :default float?))
+   :float     (nil?-or #?(:cljs number? :default float?))
    :fn        (nil?-or ifn?)
    :ignore    (constantly true)
-   :instant   (nil?-or #(instance? date %))
+   :instant   (nil?-or #(instance? #?(:cljd dart:core/DateTime :default date) %))
    :int       (nil?-or integer?)
    :keyword   (nil?-or keyword?)
    :kw-ref    (nil?-or keyword?)
@@ -244,7 +271,7 @@
    :ref       (nil?-or integer?)
    :seq       (nil?-or multiple?)
    :string    (nil?-or string?)
-   :timestamp (nil?-or #?(:clj #(instance? java.sql.Timestamp %) :cljs #(instance? date %)))
+   :timestamp (nil?-or #(instance? #?(:clj java.sql.Timestamp :cljs date :cljd dart:core/DateTime) %))
    :uri       (nil?-or uri?)
    :uuid      (nil?-or uuid?)})
 
@@ -406,16 +433,15 @@
 (defn field-error?
   "Returns true if the value is a FieldError, false otherwise."
   [value]
-  #?(:clj  (instance? c3kit.apron.schema.FieldError value)
-     :cljs (satisfies? FieldError value)))
+  #?(:clj     (instance? c3kit.apron.schema.FieldError value)
+     :default (satisfies? FieldError value)))
 
 (defn error-seq
   "Returns a sequence of all the FieldErrors in a processed entity."
   [entity]
   (cond (field-error? entity) [entity]
         (map? entity) (mapcat error-seq (vals entity))
-        (multiple? entity) (mapcat error-seq entity)
-        :else nil))
+        (multiple? entity) (mapcat error-seq entity)))
 
 (defn error?
   "Return true if the processed entity has errors, false otherwise."
@@ -436,13 +462,13 @@
 (defn- field-result-or-error [process spec value]
   (try
     (-process-field-spec process spec value)
-    (catch #?(:clj Exception :cljs :default) e
+    (catch #?(:clj Exception :cljd Object :cljs :default) e
       (-process-error process {:exception e}))))
 
 (defn- entity-result-or-error [process key spec entity]
   (try
     (-process-entity-level-spec process key spec entity)
-    (catch #?(:clj Exception :cljs :default) e
+    (catch #?(:clj Exception :cljd Object :cljs :default) e
       (-process-error process {:exception e}))))
 
 (defn- process-validations [validations value]
@@ -456,9 +482,8 @@
   (let [{:keys [type message]} spec
         coerce-fns (conj (->vec (:coerce spec)) (type-coercer! type))]
     (try
-      (let [result (reduce (fn [result coerce-fn] (coerce-fn result)) value coerce-fns)]
-        result)
-      (catch #?(:clj Exception :cljs :default) e
+      (reduce (fn [result coerce-fn] (coerce-fn result)) value coerce-fns)
+      (catch #?(:clj Exception :cljd Object :cljs :default) e
         (-process-error :coerce {:message message :exception e})))))
 
 (defn- validate-field-spec [spec value]
@@ -473,8 +498,7 @@
   (let [coerce-result (field-result-or-error :coerce spec value)]
     (if (field-error? coerce-result)
       coerce-result
-      (let [field-result-or-failure (field-result-or-error :validate spec coerce-result)]
-        field-result-or-failure))))
+      (field-result-or-error :validate spec coerce-result))))
 
 (defn- present-field-spec [spec value]
   (let [present-fns (->vec (:present spec))]
@@ -493,7 +517,7 @@
     (try
       (let [coerced-entity (reduce (fn [result coerce-fn] (assoc result key (coerce-fn result))) entity coerce-fns)]
         (get coerced-entity key))
-      (catch #?(:clj Exception :cljs :default) e
+      (catch #?(:clj Exception :cljd Object :cljs :default) e
         (-process-error :coerce {:message message :exception e})))))
 
 (defn- validate-entity-level-spec [key spec entity]
@@ -532,7 +556,6 @@
                   result))))
 
 (defn- process-seq-spec-on-value [process spec value]
-  ;(prn "process spec value: " process spec value)
   (let [entry-spec (or (:spec spec) {:type :any})]
     (cond (= :coerce process) (let [value (field-result-or-error :coerce spec value)]
                                 (if (error? value)
@@ -614,7 +637,7 @@
 (defn- attempt-process-schema-on-entity [process schema entity]
   (try
     (process-schema-on-entity process schema (->map entity))
-    (catch #?(:clj Exception :cljs :default) e
+    (catch #?(:clj Exception :cljd Object :cljs :default) e
       (if (:invalid-spec (ex-data e))
         (throw e)
         (-process-error process {:value entity :exception e})))))
@@ -642,7 +665,7 @@
 (defn valid-value?
   "return true or false"
   ([schema key value] (valid-value? (get schema key) value))
-  ([spec value] (try (validate-value! spec value) true (catch #?(:clj Exception :cljs :default) _ false))))
+  ([spec value] (try (validate-value! spec value) true (catch #?(:clj Exception :cljd Object :cljs :default) _ false))))
 
 (defn conform-value!
   "coerce and validate, returns coerced value or throws"
@@ -680,18 +703,14 @@
   (attempt-process-schema-on-entity :present schema entity))
 
 (defn- as-map-or-nil [thing]
-  (when (seq thing)
-    (into {} thing)))
+  (some->> (seq thing) (into {})))
 
 (defn error-map [result]
   (cond (field-error? result) result
-        (map? result) (->> (map (fn [[k v]] (when-let [v (error-map v)] [k v])) result)
-                           (remove nil?)
+        (map? result) (->> (keep (fn [[k v]] (when-let [v (error-map v)] [k v])) result)
                            as-map-or-nil)
-        (multiple? result) (->> (map-indexed (fn [k v] (when-let [v (error-map v)] [k v])) result)
-                                (remove nil?)
-                                as-map-or-nil)
-        :else nil))
+        (multiple? result) (->> (keep-indexed (fn [k v] (when-let [v (error-map v)] [k v])) result)
+                                as-map-or-nil)))
 
 (defn message-map
   "nil when there are no errors, otherwise a map {<field> <error message>}."
@@ -783,9 +802,9 @@
 (defn merge-schemas [& schemas]
   (let [entity-specs (apply merge-with merge-specs (map :* schemas))
         attr-specs   (apply merge-with merge-specs (map #(dissoc % :*) schemas))]
-    (if (seq entity-specs)
-      (assoc attr-specs :* entity-specs)
-      attr-specs)))
+    (cond-> attr-specs
+            (seq entity-specs)
+            (assoc :* entity-specs))))
 
 ;; endregion ^^^^^ Merging Schemas ^^^^^
 
@@ -813,17 +832,17 @@
 
 (def spec-schema
   (assoc -spec-schema
-         :spec {:type :map :schema -spec-schema :message "must be schema/spec-schema"}
-         :specs {:type :seq :spec {:type :map :schema -spec-schema}}
-         :schema {:type :map :message "must be a map"}
-         :* {:spec   {:validate #(if (:spec %) (= :seq (:type %)) true) :message "only used with type :seq"}
-             :specs  {:validate #(if (:specs %) (= :one-of (:type %)) true) :message "only used with type :one-of"}
-             :schema {:validate #(if (:schema %) (= :map (:type %)) true) :message "only used with type :map"}}))
+    :spec {:type :map :schema -spec-schema :message "must be schema/spec-schema"}
+    :specs {:type :seq :spec {:type :map :schema -spec-schema}}
+    :schema {:type :map :message "must be a map"}
+    :* {:spec   {:validate #(or (not (:spec %)) (= :seq (:type %))) :message "only used with type :seq"}
+        :specs  {:validate #(or (not (:specs %)) (= :one-of (:type %))) :message "only used with type :one-of"}
+        :schema {:validate #(or (not (:schema %)) (= :map (:type %))) :message "only used with type :map"}}))
 
 (def entity-spec-schema
   (assoc spec-schema
-         :type {:type    :keyword :validate (nil?-or #(contains? valid-types %))
-                :message "must be one of schema/valid-types"}))
+    :type {:type    :keyword :validate (nil?-or #(contains? valid-types %))
+           :message "must be one of schema/valid-types"}))
 
 (defn- conform-preserving-extras! [schema spec]
   (let [extra     (apply dissoc spec (keys schema))
@@ -836,9 +855,9 @@
   [schema]
   (let [schema        (normalize-schema schema)
         field-schema  (update-vals (dissoc schema :*) #(conform-preserving-extras! spec-schema %))
-        entity-schema (when-let [s (:* schema)] (update-vals s #(conform-preserving-extras! entity-spec-schema %)))]
-    (if entity-schema
-      (assoc field-schema :* entity-schema)
-      field-schema)))
+        entity-schema (some-> (:* schema) (update-vals #(conform-preserving-extras! entity-spec-schema %)))]
+    (cond-> field-schema
+            entity-schema
+            (assoc :* entity-schema))))
 
 ;; endregion ^^^^^ spec schema ^^^^^
