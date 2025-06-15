@@ -40,7 +40,7 @@
 (defn- validation-ex [message value]
   (ex-info (or message "is invalid") {:value value}))
 
-(def date #?(:cljd dart:core/DateTime
+(def date #?(:cljd DateTime
              :clj java.util.Date
              :cljs js/Date))
 
@@ -65,7 +65,7 @@
 
 (defn uri? [value]
   #?(:clj  (instance? java.net.URI value)
-     :cljd (instance? dart:core/Uri value)
+     :cljd (instance? Uri value)
      :cljs (string? value)))
 
 (defn is-enum? [enum]
@@ -108,7 +108,7 @@
     (nil? v) nil
     (string? v) (when-not (str/blank? v)
                   (try
-                    #?(:cljd (dart:core/double.parse v)
+                    #?(:cljd (double/parse v)
                        :clj  (Double/parseDouble v)
                        :cljs (parse! js/parseFloat v))
                     (catch #?(:clj Exception :cljd Object :cljs :default) _
@@ -126,7 +126,7 @@
     (nil? v) nil
     (string? v) (when-not (str/blank? v)
                   (try
-                    #?(:cljd (.toInt (dart:core/double.parse v))
+                    #?(:cljd (.toInt (double/parse v))
                        :clj  (long (Double/parseDouble v))
                        :cljs (parse! js/parseInt v))
                     (catch #?(:clj Exception :cljd Object :cljs :default) _
@@ -145,7 +145,7 @@
     (nil? v) nil
     (string? v) (when-not (str/blank? v)
                   (try
-                    #?(:cljd (dart:core/double.parse v)
+                    #?(:cljd (double/parse v)
                        :clj  (bigdec v)
                        :cljs (parse! js/parseFloat v))
                     (catch #?(:clj Exception :cljd Object :cljs :default) _
@@ -159,13 +159,13 @@
 
 (defn- date? [v]
   (instance?
-    #?(:cljd dart:core/DateTime
+    #?(:cljd DateTime
        :clj  java.util.Date
        :cljs js/Date)
     v))
 
 (defn- date-from-millis [millis-since-epoch]
-  #?(:cljd (dart:core/DateTime.fromMillisecondsSinceEpoch millis-since-epoch .isUtc true)
+  #?(:cljd (DateTime/fromMillisecondsSinceEpoch millis-since-epoch .isUtc true)
      :clj  (doto (java.util.Date.) (.setTime millis-since-epoch))
      :cljs (doto (js/Date.) (.setTime millis-since-epoch))))
 
@@ -212,8 +212,8 @@
   (cond
     (nil? v) nil
     #?@(:clj [(instance? java.net.URI v) v])
-    #?@(:cljd [(instance? dart:core/Uri v) v])
-    (string? v) #?(:cljd (dart:core/Uri.parse v)
+    #?@(:cljd [(instance? Uri v) v])
+    (string? v) #?(:cljd (Uri/parse v)
                    :clj  (java.net.URI/create v)
                    :cljs v)
     :else (throw (coerce-ex v "uri"))))
@@ -257,12 +257,12 @@
   {:any       (constantly true)
    :bigdec    (nil?-or bigdec?)
    :boolean   (nil?-or boolean?)
-   :date      (nil?-or #(instance? #?(:clj java.sql.Date :cljs date :cljd dart:core/DateTime) %))
+   :date      (nil?-or #(instance? #?(:clj java.sql.Date :cljs date :cljd DateTime) %))
    :double    (nil?-or #?(:cljs number? :default float?))
    :float     (nil?-or #?(:cljs number? :default float?))
    :fn        (nil?-or ifn?)
    :ignore    (constantly true)
-   :instant   (nil?-or #(instance? #?(:cljd dart:core/DateTime :default date) %))
+   :instant   (nil?-or #(instance? #?(:cljd DateTime :default date) %))
    :int       (nil?-or integer?)
    :keyword   (nil?-or keyword?)
    :kw-ref    (nil?-or keyword?)
@@ -271,7 +271,7 @@
    :ref       (nil?-or integer?)
    :seq       (nil?-or multiple?)
    :string    (nil?-or string?)
-   :timestamp (nil?-or #(instance? #?(:clj java.sql.Timestamp :cljs date :cljd dart:core/DateTime) %))
+   :timestamp (nil?-or #(instance? #?(:clj java.sql.Timestamp :cljs date :cljd DateTime) %))
    :uri       (nil?-or uri?)
    :uuid      (nil?-or uuid?)})
 

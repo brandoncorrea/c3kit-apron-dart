@@ -3,14 +3,11 @@
             [c3kit.apron.schema :as schema]
             [clojure.string :as str]
             [c3kit.apron.utilc :as utilc]
+            [c3kit.apron.time :as time]
             [c3kit.apron.corec :as ccc])
   #?@(:cljd ()
       :clj  ((:import (java.net URI)
                       (java.util UUID)))))
-
-(defn millis-since-epoch [time]
-  #?(:cljd    (.-millisecondsSinceEpoch time)
-     :default (.getTime time)))
 
 (def pet
   {:kind        (schema/kind :pet)
@@ -57,10 +54,8 @@
    :size {:type :long}
    :pets {:type [pet]}})
 
-(def now #?(:clj  (java.util.Date.)
-            :cljs (js/Date.)
-            :cljd (dart:core/DateTime.fromMillisecondsSinceEpoch (millis-since-epoch (dart:core/DateTime.now)) .isUtc true)))
-(def home (#?(:clj URI/create :cljs identity :cljd dart:core/Uri.parse) "http://apron.co"))
+(def now (-> (time/now) #?(:cljd (-> time/millis-since-epoch time/from-epoch))))
+(def home (#?(:clj URI/create :cljs identity :cljd Uri/parse) "http://apron.co"))
 (def a-uuid (#?(:clj UUID/fromString :default uuid) "1f50be30-1373-40b7-acce-5290b0478fbe"))
 
 (def valid-pet {:species  "dog"
@@ -168,8 +163,8 @@
     (is (nil? (schema/->date nil)))
     (is (nil? (schema/->date " \r\n\t")))
     (is (= now (schema/->date now)))
-    (is (= now (schema/->date (millis-since-epoch now))))
-    (is (instance? #?(:clj java.util.Date :cljs js/Date :cljd dart:core/DateTime) (schema/->date now)))
+    (is (= now (schema/->date (time/millis-since-epoch now))))
+    (is (instance? #?(:clj java.util.Date :cljs js/Date :cljd DateTime) (schema/->date now)))
     (is (thrown? #?(:clj  clojure.lang.ExceptionInfo
                     :cljd cljd.core/ExceptionInfo
                     :cljs cljs.core/ExceptionInfo) (schema/->date "now")))
@@ -178,25 +173,25 @@
   (testing "to sql date"
     (is (nil? (schema/->sql-date nil)))
     (is (nil? (schema/->sql-date " \r\n\t")))
-    (is (= #?(:clj (java.sql.Date. (millis-since-epoch now)) :default now) (schema/->sql-date now)))
-    (is (= #?(:clj (java.sql.Date. (millis-since-epoch now)) :default now) (schema/->sql-date (millis-since-epoch now))))
-    (is (instance? #?(:clj java.sql.Date :cljs js/Date :cljd dart:core/DateTime) (schema/->sql-date now)))
+    (is (= #?(:clj (java.sql.Date. (time/millis-since-epoch now)) :default now) (schema/->sql-date now)))
+    (is (= #?(:clj (java.sql.Date. (time/millis-since-epoch now)) :default now) (schema/->sql-date (time/millis-since-epoch now))))
+    (is (instance? #?(:clj java.sql.Date :cljs js/Date :cljd DateTime) (schema/->sql-date now)))
     (is (thrown? #?(:clj  clojure.lang.ExceptionInfo
                     :cljd cljd.core/ExceptionInfo
                     :cljs cljs.core/ExceptionInfo) (schema/->sql-date "now")))
-    (is (= #?(:clj (java.sql.Date. (millis-since-epoch now)) :default now) (schema/->sql-date (pr-str now)))))
+    (is (= #?(:clj (java.sql.Date. (time/millis-since-epoch now)) :default now) (schema/->sql-date (pr-str now)))))
 
   (testing "to sql timestamp"
     (is (nil? (schema/->timestamp nil)))
     (is (nil? (schema/->timestamp " \r\n\t")))
-    (is (= #?(:clj (java.sql.Timestamp. (millis-since-epoch now)) :default now) (schema/->timestamp now)))
-    (is (= #?(:clj (java.sql.Timestamp. (millis-since-epoch now)) :default now) (schema/->timestamp (millis-since-epoch now))))
-    (is (instance? #?(:clj java.sql.Timestamp :cljs js/Date :cljd dart:core/DateTime) (schema/->timestamp now)))
-    #?(:clj (is (instance? java.sql.Timestamp (schema/->timestamp (java.sql.Date. (millis-since-epoch now))))))
+    (is (= #?(:clj (java.sql.Timestamp. (time/millis-since-epoch now)) :default now) (schema/->timestamp now)))
+    (is (= #?(:clj (java.sql.Timestamp. (time/millis-since-epoch now)) :default now) (schema/->timestamp (time/millis-since-epoch now))))
+    (is (instance? #?(:clj java.sql.Timestamp :cljs js/Date :cljd DateTime) (schema/->timestamp now)))
+    #?(:clj (is (instance? java.sql.Timestamp (schema/->timestamp (java.sql.Date. (time/millis-since-epoch now))))))
     (is (thrown? #?(:clj  clojure.lang.ExceptionInfo
                     :cljd cljd.core/ExceptionInfo
                     :cljs cljs.core/ExceptionInfo) (schema/->timestamp "now")))
-    (is (= #?(:clj (java.sql.Timestamp. (millis-since-epoch now)) :default now) (schema/->timestamp (pr-str now)))))
+    (is (= #?(:clj (java.sql.Timestamp. (time/millis-since-epoch now)) :default now) (schema/->timestamp (pr-str now)))))
 
   (testing "to uri"
     (is (nil? (schema/->uri nil)))
@@ -500,7 +495,7 @@
       (is (true? (schema/valid-value? {:type :instant} nil)))
       (is (false? (schema/valid-value? {:type :instant} "foo")))
       (is (false? (schema/valid-value? {:type :instant} 123)))
-      (let [now #?(:clj (java.util.Date.) :cljs (js/Date.) :cljd (dart:core/DateTime.now))]
+      (let [now #?(:clj (java.util.Date.) :cljs (js/Date.) :cljd (DateTime/now))]
         (is (true? (schema/valid-value? {:type :instant} now))))
       #?(:cljs (is (false? (schema/valid-value? {:type :instant} (js/goog.date.Date.))))))
 
@@ -510,7 +505,7 @@
       (is (false? (schema/valid-value? {:type :date} 123)))
       #?(:clj (is (false? (schema/valid-value? {:type :date} (java.util.Date.)))))
       #?(:clj (is (true? (schema/valid-value? {:type :date} (java.sql.Date. (System/currentTimeMillis))))))
-      #?(:cljd (is (true? (schema/valid-value? {:type :date} (dart:core/DateTime.now)))))
+      #?(:cljd (is (true? (schema/valid-value? {:type :date} (DateTime/now)))))
       #?(:cljs (is (true? (schema/valid-value? {:type :date} (js/Date.)))))
       #?(:cljs (is (false? (schema/valid-value? {:type :date} (js/goog.date.Date.))))))
 
@@ -520,7 +515,7 @@
       (is (false? (schema/valid-value? {:type :timestamp} 123)))
       #?(:clj (is (false? (schema/valid-value? {:type :timestamp} (java.util.Date.)))))
       #?(:clj (is (true? (schema/valid-value? {:type :timestamp} (java.sql.Timestamp. (System/currentTimeMillis))))))
-      #?(:cljd (is (true? (schema/valid-value? {:type :timestamp} (dart:core/DateTime.now)))))
+      #?(:cljd (is (true? (schema/valid-value? {:type :timestamp} (DateTime/now)))))
       #?(:cljs (is (true? (schema/valid-value? {:type :timestamp} (js/Date.)))))
       #?(:cljs (is (false? (schema/valid-value? {:type :timestamp} (js/goog.date.Date.))))))
 
@@ -528,7 +523,7 @@
       (is (true? (schema/valid-value? {:type :uri} nil)))
       (is (#?(:cljs true? :default false?) (schema/valid-value? {:type :uri} "foo")))
       #?(:clj (is (true? (schema/valid-value? {:type :uri} (URI/create "foo")))))
-      #?(:cljd (is (true? (schema/valid-value? {:type :uri} (dart:core/Uri.new .path "foo")))))
+      #?(:cljd (is (true? (schema/valid-value? {:type :uri} (Uri/new .path "foo")))))
       (is (false? (schema/valid-value? {:type :uri} 123))))
 
     (testing "of UUID"
