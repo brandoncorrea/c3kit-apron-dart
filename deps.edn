@@ -14,7 +14,7 @@
                     :exec-fn    cognitect.test-runner.api/test}
              :cljs {:main-opts  ["-m" "cljs-test-runner.main"]
                     :extra-deps {olical/cljs-test-runner {:mvn/version "3.8.1"}}}
-             :cljd {:extra-deps {tensegritics/clojuredart {:git/url "https://github.com/Tensegritics/ClojureDart.git" :sha "dcd61aad425eb2211d3de162a847b28f04476903"}}
+             :cljd {:extra-deps {tensegritics/clojuredart {:git/url "https://github.com/brandoncorrea/ClojureDart.git" :sha "d646c11510cbf3906f998c7def900e06da6ec4ca"}}
                     :main-opts  ["-m" "cljd.build"]}
              }
  }
