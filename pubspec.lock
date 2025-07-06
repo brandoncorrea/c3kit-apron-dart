@@ -345,6 +345,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.11"
+  transit_cljd:
+    dependency: "direct main"
+    description:
+      path: ".clojuredart/deps/e9ba1a1119e7bec176847846bac72da81ab9885cc89f6c3011ce3ba3f59d2c36"
+      relative: true
+    source: path
+    version: "0.8.34"
+  transit_dart:
+    dependency: transitive
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "3f29b084d76e2e58e32f70c93cdd03542ea13920"
+      url: "https://github.com/wevre/transit-dart"
+    source: git
+    version: "0.8.117"
   typed_data:
     dependency: transitive
     description:

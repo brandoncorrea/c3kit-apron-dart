@@ -9,6 +9,8 @@ environment:
 # Add regular dependencies here.
 dependencies:
   intl: ^0.20.2
+  transit_cljd:
+    path: .clojuredart/deps/e9ba1a1119e7bec176847846bac72da81ab9885cc89f6c3011ce3ba3f59d2c36
   # path: ^1.8.0
 
 dev_dependencies:

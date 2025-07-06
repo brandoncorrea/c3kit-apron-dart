@@ -8,7 +8,9 @@
             [c3kit.apron.schema :as schema]
             [clojure.edn :as edn]
             [clojure.string :as str]
-            #?@(:cljd () :default ([cognitect.transit :as transit]))))
+            #?(:cljd ["package:transit_dart/transit_dart.dart" :as td])
+            #?(:cljd    [wevre.transit-cljd :as transit]
+               :default [cognitect.transit :as transit])))
 
 (defn ->edn
   "Convenience.  Convert the form to EDN"
@@ -56,6 +58,27 @@
 #?(:cljs (def transit-reader (transit/reader :json {:handlers {"f" js/parseFloat "n" js/parseInt}})))
 #?(:cljs (def transit-writer (transit/writer :json)))
 
+#?(:cljd
+   (defn- make-reader [f]
+     (reify td/ReadHandler (fromRep [_ o] (f o)))))
+
+#?(:cljd
+   (def transit-opts
+     {:custom-read-handlers
+      {"u" (make-reader uuid)
+       "f" (make-reader double/parse)
+       "n" (make-reader int/parse)}
+      :custom-write-handlers
+      {(#/(td/Class cljd.core/UUID))
+       (reify td/WriteHandler
+         (tag [_ o] "u")
+         (rep [_ o .tag] (str o))
+         (stringRep [_ o] (str o)))}}))
+
+#?(:cljd (def ^:private transit-codec (transit/json transit-opts)))
+#?(:cljd (def ^:private transit-reader (.-decoder ^td/TransitJsonCodec transit-codec)))
+#?(:cljd (def ^:private transit-writer (.-encoder ^td/TransitJsonCodec transit-codec)))
+
 (defn ->transit
   "Convert data into transit string"
   ([type opts data]
@@ -64,11 +87,14 @@
               (transit/write writer data)
               (.close baos)
               (.toString baos))
-      :cljd (throw (ex-info "Not Supported in ClojureDart" {:fn "c3kit.apron.utilc/->transit"}))
+      :cljd (let [opts    {:custom-write-handlers (:handlers opts)}
+                  options (merge transit-opts opts)
+                  writer  (.-encoder (transit/json options))]
+              (.convert writer data))
       :cljs (transit/write (transit/writer type opts) data)))
   ([data]
    #?(:clj  (->transit :json {} data)
-      :cljd (throw (ex-info "Not Supported in ClojureDart" {:fn "c3kit.apron.utilc/->transit"}))
+      :cljd (.convert ^convert/Converter transit-writer data)
       :cljs (transit/write transit-writer data))))
 
 (defn <-transit
@@ -76,11 +102,14 @@
   ([type opts ^String transit-str]
    #?(:clj  (with-open [in (ByteArrayInputStream. (.getBytes transit-str))]
               (transit/read (transit/reader in type opts)))
-      :cljd (throw (ex-info "Not Supported in ClojureDart" {:fn "c3kit.apron.utilc/<-transit"}))
+      :cljd (let [opts    {:custom-read-handlers (:handlers opts)}
+                  options (merge transit-opts opts)
+                  reader  (.-decoder (transit/json options))]
+              (.convert reader transit-str))
       :cljs (transit/read (transit/reader type opts) transit-str)))
   ([^String transit-str]
    #?(:clj  (<-transit :json {} transit-str)
-      :cljd (throw (ex-info "Not Supported in ClojureDart" {:fn "c3kit.apron.utilc/<-transit"}))
+      :cljd (.convert ^convert/Converter transit-reader transit-str)
       :cljs (transit/read transit-reader transit-str))))
 
 ; ^^^^^ Transit ^^^^^

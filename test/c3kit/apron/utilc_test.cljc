@@ -2,6 +2,7 @@
   (:require [c3kit.apron.corec :as ccc]
             [c3kit.apron.utilc :as sut]
             [clojure.test :refer [deftest is testing]]
+            #?(:cljd ["package:transit_dart/transit_dart.dart" :as td])
             #?@(:cljd () :default ([cognitect.transit :as transit]))))
 
 (deftest edn-test
@@ -38,31 +39,7 @@
       (is (= {123 a 456 b} (sut/index-by-id [b a])))))
   )
 
-#?(:cljd
-   (deftest transit-test
-     (testing "->transit not implemented"
-       (is (thrown-with-msg?
-             cljd.core/ExceptionInfo
-             #"Not Supported in ClojureDart"
-             (sut/->transit "blah")))
-       (is (thrown-with-msg?
-             cljd.core/ExceptionInfo
-             #"Not Supported in ClojureDart"
-             (sut/->transit :json {:handlers {}} "blah"))))
-
-     (testing "<-tranasit not implemented"
-       (is (thrown-with-msg?
-             cljd.core/ExceptionInfo
-             #"Not Supported in ClojureDart"
-             (sut/<-transit "blah")))
-       (is (thrown-with-msg?
-             cljd.core/ExceptionInfo
-             #"Not Supported in ClojureDart"
-             (sut/<-transit :json {} "blah")))))
-   )
-
-(when #?(:cljd false :default true)
-  (deftest transit-test
+(deftest transit-test
 
     (testing "uuid"
       (let [uuid         (ccc/new-uuid)
@@ -70,23 +47,27 @@
         (is (= uuid (sut/<-transit uuid-transit)))))
 
     (testing "uuid in map"
-      ;#uuid "53060bf1-971a-4d18-80fc-92a3112afd6e"
       (let [uuid (sut/->uuid-or-nil "53060bf1-971a-4d18-80fc-92a3112afd6e")
             data {:uuid uuid}
             trs  (sut/->transit data)]
         (is (= data (sut/<-transit trs)))))
 
     (testing "<-transit accepts optional types and parameters"
-      (let [handlers {"f" (transit/read-handler (fn [_] "hello"))}]
+      (let [handlers {"f" #?(:cljd    (reify td/ReadHandler (fromRep [_ _] "hello"))
+                             :default (transit/read-handler (fn [_] "hello")))}]
         (is (= "hello" (sut/<-transit :json {:handlers handlers} "[\"~#'\",\"~f-1.23\"]")))))
 
     (testing "->transit accepts optional types and parameters"
       (let [handlers {#?(:clj  clojure.lang.Symbol
-                         :cljd cljd.core/Symbol
+                         :cljd (#/(td/Class cljd.core/Symbol))
                          :cljs cljs.core/Symbol)
-                      (transit/write-handler
-                        (fn [_] "$")
-                        (fn [_] "abc"))}]
+                      #?(:cljd (reify :extends #/(td/WriteHandler cljd.core/Symbol dynamic)
+                                 (tag [_ _] "$")
+                                 (rep [_ o .tag] "abc")
+                                 (stringRep [_ _] "abc"))
+                         :default (transit/write-handler
+                                    (fn [_] "$")
+                                    (fn [_] "abc")))}]
         (is (= (sut/->transit 'abc) (sut/->transit :json {:handlers handlers} 'im-being-ignored...)))))
 
     (testing "BigDecimal"
@@ -107,7 +88,7 @@
       (is (= #?(:clj 5N :default 5) (sut/<-transit "[\"~#'\",\"~n5\"]")))
       (is (= {#?(:clj 3N :default 3) #?(:clj 7N :default 7)}
              (sut/<-transit "[\"^ \",\"~n3\",\"~n7\"]"))))
-    ))
+    )
 
 (deftest json-test
 

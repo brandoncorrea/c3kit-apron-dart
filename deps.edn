@@ -1,11 +1,12 @@
 {:paths     ["src"]
  :cljd/opts {:kind :dart :main cljd.run-tests}
  :deps      {
-             com.andrewmcveigh/cljs-time {:mvn/version "0.5.2"}
-             com.cognitect/transit-clj   {:mvn/version "1.0.333"}
-             com.cognitect/transit-cljs  {:mvn/version "0.8.280"}
-             org.clojure/clojure         {:mvn/version "1.12.1"}
-             org.clojure/data.json       {:mvn/version "2.5.1"}
+             com.andrewmcveigh/cljs-time  {:mvn/version "0.5.2"}
+             com.cognitect/transit-clj    {:mvn/version "1.0.333"}
+             com.cognitect/transit-cljs   {:mvn/version "0.8.280"}
+             io.github.wevre/transit-cljd {:git/tag "v0.8.36" :git/sha "d9541d0"}
+             org.clojure/clojure          {:mvn/version "1.12.1"}
+             org.clojure/data.json        {:mvn/version "2.5.1"}
              }
  :aliases   {:test {:extra-paths ["test"]
                     :extra-deps  {org.clojure/clojurescript {:mvn/version "1.11.132"}}}
@@ -14,7 +15,10 @@
                     :exec-fn    cognitect.test-runner.api/test}
              :cljs {:main-opts  ["-m" "cljs-test-runner.main"]
                     :extra-deps {olical/cljs-test-runner {:mvn/version "3.8.1"}}}
-             :cljd {:extra-deps {tensegritics/clojuredart {:git/url "https://github.com/brandoncorrea/ClojureDart.git" :sha "d646c11510cbf3906f998c7def900e06da6ec4ca"}}
+             :cljd {:extra-deps {
+                                 ;tensegritics/clojuredart {:git/url "https://github.com/tensegritics/ClojureDart.git" :sha "988522ee8b44584f0661777f3e1859f7cb3e7abd"}
+                                 tensegritics/clojuredart {:git/url "https://github.com/brandoncorrea/ClojureDart.git" :sha "048708016533d31f448c2e6d028dad03e66c2193"}
+                                 }
                     :main-opts  ["-m" "cljd.build"]}
              }
  }
