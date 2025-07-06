@@ -33,8 +33,14 @@ jobs:
       - name: Install Clojure CLI
         run: curl -O https://download.clojure.org/install/linux-install-1.11.1.1119.sh && chmod +x linux-install-1.11.1.1119.sh && sudo ./linux-install-1.11.1.1119.sh
 
+      - name: Install Dart
+        uses: dart-lang/setup-dart@v1
+
       - name: Run Clojure Tests
         run: clojure -X:test:clj
 
       - name: Run ClojureScript Tests
         run: clojure -M:test:cljs
+
+      - name: Run ClojureDart Tests
+        run: clojure -M:test:cljd test
