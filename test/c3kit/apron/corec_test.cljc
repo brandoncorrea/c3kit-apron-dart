@@ -472,8 +472,7 @@
       (is (= {:a 2} (ccc/min-by :a (#?(:cljd dart-comparator :default comparator) <) things))))))
 
 (deftest formats-test
-  #?(:cljd    (is (thrown? cljd.core/ExceptionInfo #"Not Supported in ClojureDart" (ccc/formats "Number %s" 9)))
-     :default (is (= "Number 9" (ccc/formats "Number %s" 9)))))
+  (is (= "Number 9" (ccc/formats "Number %s" 9))))
 
 (deftest pad-left-test
   (is (nil? (ccc/pad-left nil 0)))

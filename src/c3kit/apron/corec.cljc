@@ -5,6 +5,7 @@
   #?(:cljs (:require-macros [c3kit.apron.corec :refer [for-all nand nor xor]]))
   (:require [c3kit.apron.test-fabric :as fabric]
             [clojure.string :as str]
+            #?(:cljd ["package:sprintf/sprintf.dart" :as sprintf])
             #?(:cljs [goog.string :as gstring])
             #?(:cljs [goog.string.format])
             #?(:cljs [goog.object :as gobj])))
@@ -274,10 +275,10 @@
     :else (apply hash-map options)))
 
 (defn formats
-  "Platform agnostic string format fm"
+  "Platform-agnostic string format function."
   [format & args]
   #?(:clj  (apply clojure.core/format format args)
-     :cljd (throw (ex-info "Not supported in ClojureDart" {:fn "c3kit.apron.corec/formats"}))
+     :cljd (.call sprintf/sprintf format args)
      :cljs (apply gstring/format format args)))
 
 (defn- ->string
