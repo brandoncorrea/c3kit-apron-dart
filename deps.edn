@@ -16,8 +16,8 @@
              :cljs {:main-opts  ["-m" "cljs-test-runner.main"]
                     :extra-deps {olical/cljs-test-runner {:mvn/version "3.8.1"}}}
              :cljd {:extra-deps {
-                                 ;tensegritics/clojuredart {:git/url "https://github.com/tensegritics/ClojureDart.git" :sha "988522ee8b44584f0661777f3e1859f7cb3e7abd"}
-                                 tensegritics/clojuredart {:git/url "https://github.com/brandoncorrea/ClojureDart.git" :sha "048708016533d31f448c2e6d028dad03e66c2193"}
+                                 tensegritics/clojuredart {:git/url "https://github.com/tensegritics/ClojureDart.git" :sha "10f926ee0593d6e573977937dcd6dc20b30b7a62"}
+                                 ;tensegritics/clojuredart {:git/url "https://github.com/brandoncorrea/ClojureDart.git" :sha "048708016533d31f448c2e6d028dad03e66c2193"}
                                  }
                     :main-opts  ["-m" "cljd.build"]}
              }
