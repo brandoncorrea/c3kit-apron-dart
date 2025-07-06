@@ -11,7 +11,8 @@
                [java.text SimpleDateFormat]))))
 
 (defn milliseconds
-  "Our atomic unit"
+  ^{:doc    "Our atomic unit"
+    :inline (fn [n] n)}
   [n] n)
 
 (defn seconds
@@ -44,7 +45,11 @@
   (long (/ millis 1000)))
 
 (defn now
-  "Returns a java.util.Date or js/Date object that represents the current date and time in UTC"
+  ^{:doc    "Returns a java.util.Date or js/Date object that represents the current date and time in UTC"
+    :inline (fn []
+              #?(:clj  `(Date.)
+                 :cljs `(js/Date.)
+                 :cljd `(DateTime/now)))}
   []
   #?(:clj  (Date.)
      :cljs (js/Date.)
@@ -431,8 +436,9 @@
     (let [formatter (->formatter format)]
       (-unparse formatter value))))
 
-(defn bounds [start end]
-  (list start end))
+(defn bounds
+  ^{:inline (fn [start end] `(list ~start ~end))}
+  [start end] (list start end))
 
 (defn bounds? [thing]
   (and (seq? thing)
@@ -440,8 +446,13 @@
        (instant? (first thing))
        (instant? (first (rest thing)))))
 
-(defn start-of [bounds] (first bounds))
-(defn end-of [bounds] (first (rest bounds)))
+(defn start-of
+  ^{:inline (fn [bounds] `(first ~bounds))}
+  [bounds] (first bounds))
+
+(defn end-of
+  ^{:inline (fn [bounds] `(second ~bounds))}
+  [bounds] (second bounds))
 
 (defn during? [bounds instant]
   (and (after? instant (start-of bounds))

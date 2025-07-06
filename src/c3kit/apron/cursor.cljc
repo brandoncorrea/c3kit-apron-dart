@@ -31,10 +31,10 @@
      (-reset! [_ new-value] (do-reset! base path new-value))
 
      cljd.core/ISwap
-     (-swap! [a f] (do-swap! base path f))
-     (-swap! [a f x] (do-swap! base path f x))
-     (-swap! [a f x y] (do-swap! base path f x y))
-     (-swap! [a f x y more] (do-swap! base path f x y more))
+     (-swap! [_a f] (do-swap! base path f))
+     (-swap! [_a f x] (do-swap! base path f x))
+     (-swap! [_a f x y] (do-swap! base path f x y))
+     (-swap! [_a f x y more] (do-swap! base path f x y more))
 
      cljd.core/IPrint
      (-print [_ sink]
@@ -47,7 +47,7 @@
 
      cljd.core/IWatchable
      (-notify-watches [_ oldval newval] (-notify-watches base oldval newval))
-     (-add-watch [this key f] (-add-watch base [path key] (fn [k r o n] (f key this (get-in o path) (get-in n path)))))
+     (-add-watch [this key f] (-add-watch base [path key] (fn [_k _r o n] (f key this (get-in o path) (get-in n path)))))
      (-remove-watch [_ key] (-remove-watch base [path key]))
      )
 
@@ -78,7 +78,7 @@
      (setValidator [_ v] (.setValidator base v))
      (getValidator [_] (.getValidator base))
      (getWatches [_] (.getWatches base))
-     (addWatch [this key f] (.addWatch base [path key] (fn [k r o n] (f key this (get-in o path) (get-in n path)))))
+     (addWatch [this key f] (.addWatch base [path key] (fn [_k _r o n] (f key this (get-in o path) (get-in n path)))))
      (removeWatch [_ key] (.removeWatch base [path key]))
      )
 
@@ -108,7 +108,7 @@
 
      IWatchable
      (-notify-watches [_ oldval newval] (-notify-watches base oldval newval))
-     (-add-watch [this key f] (-add-watch base [path key] (fn [k r o n] (f key this (get-in o path) (get-in n path)))))
+     (-add-watch [this key f] (-add-watch base [path key] (fn [_k _r o n] (f key this (get-in o path) (get-in n path)))))
      (-remove-watch [_ key] (-remove-watch base [path key]))
      )
    )

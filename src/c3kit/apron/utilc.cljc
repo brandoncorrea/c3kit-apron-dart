@@ -17,7 +17,8 @@
   [v] (some-> v pr-str))
 
 (defn <-edn
-  "Convenience.  Convert the EDN string to a Clojure form"
+  ^{:doc    "Convenience.  Convert the EDN string to a Clojure form"
+    :inline (fn [s] `(edn/read-string ~s))}
   [s] (edn/read-string s))
 
 (defn ->hex

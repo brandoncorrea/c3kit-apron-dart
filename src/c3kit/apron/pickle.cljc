@@ -29,8 +29,7 @@
 
 (defn- ref-value [id] {:_t :ref :_v id})
 
-(declare ref!)
-(declare do-pickle)
+(declare ref! do-pickle)
 
 (defn- pickled-map-value [refs m]
   (into {} (map (fn [[k v]] [(do-pickle refs k) (do-pickle refs v)]) m)))

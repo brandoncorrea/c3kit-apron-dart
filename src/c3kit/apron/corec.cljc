@@ -9,10 +9,8 @@
             #?(:cljs [goog.string.format])
             #?(:cljs [goog.object :as gobj])))
 
-#?(:cljs nil
-   :default
-   (defmacro for-all [bindings body]
-     `(doall (for ~bindings ~body))))
+(defmacro for-all [bindings body]
+  `(doall (for ~bindings ~body)))
 
 (defn map-all
   "Like for-all, but with map"
@@ -118,9 +116,9 @@
      ([o ks not-found]
       (or (apply gobj/getValueByKeys o (map #(if (number? %) % (name %)) ks)) not-found))))
 
-(defn new-uuid []
-  #?(:clj     (UUID/randomUUID)
-     :default (random-uuid)))
+(defn new-uuid
+  ^{:inline (fn [] `(random-uuid))}
+  [] (random-uuid))
 
 (defn conjv
   "ensures the seq is a vector before conj-ing"
@@ -359,9 +357,8 @@
 (defn ex?
   "Returns true is e is an exception/error for the running platform"
   [e]
-  #?(:clj  (instance? Exception e)
-     :cljd (instance? Exception e)
-     :cljs (instance? js/Error e)))
+  #?(:cljs    (instance? js/Error e)
+     :default (instance? Exception e)))
 
 (defn noop
   "Does nothing"
