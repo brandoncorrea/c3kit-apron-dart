@@ -1,3 +1,15 @@
+### 2.3.0 (Sept 21, 2025)
+* adds bad-words/contains-profanity? function
+
+### 2.2.3
+* Fixes issue where `count-by` throws when no parameters are provided.
+
+### 2.2.2
+* Fixes case where test-fabric fails to query seqable attributes by pattern matching
+
+### 2.2.1
+* Fixes c3kit.apron.log `time` override warning
+
 ### 2.2.0 
  * adds log/time (Feb 10, 2025)
  * pickle namespace (Apr 22, 2025)

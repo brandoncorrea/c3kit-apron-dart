@@ -149,6 +149,9 @@
         e3     {:bar "foo" :size 2 :round? nil :hello :world}
         e4     {:bar "foo" :size 2 :hello :world}
         things [e1 e2 e3 e4]]
+    (is (= 0 (ccc/count-by [])))
+    (is (= 1 (ccc/count-by [e1])))
+    (is (= 2 (ccc/count-by [e1 e2])))
     (is (= 0 (ccc/count-by [] :foo "bar")))
     (is (= 2 (ccc/count-by things :foo "bar")))
     (is (= 2 (ccc/count-by things :bar "foo")))

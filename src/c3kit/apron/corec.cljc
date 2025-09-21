@@ -396,4 +396,6 @@
   "Counts the number of items in coll that
    exactly match some given key-value pairs"
   [coll & {:as kvs}]
-  (count-where (fabric/spec->tester kvs) coll))
+  (if (seq kvs)
+    (count-where (fabric/spec->tester kvs) coll)
+    (count coll)))
