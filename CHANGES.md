@@ -1,5 +1,6 @@
 ### 2.3.0 (Sept 21, 2025)
 * adds bad-words/contains-profanity? function
+* adds naïve version of `c3kit.apron.log` in ClojureDart
 
 ### 2.2.3
 * Fixes issue where `count-by` throws when no parameters are provided.
