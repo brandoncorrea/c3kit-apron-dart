@@ -1,6 +1,6 @@
-name: c3kit_apron_schema
+name: c3kit_apron_dart
 description: A sample command-line application.
-version: 1.0.0
+version: 1.2.0
 # repository: https://github.com/my_org/my_repo
 
 environment:
@@ -11,7 +11,8 @@ dependencies:
   intl: ^0.20.2
   sprintf: ^7.0.0
   transit_cljd:
-    path: .clojuredart/deps/e9ba1a1119e7bec176847846bac72da81ab9885cc89f6c3011ce3ba3f59d2c36
+    git:
+      url: https://github.com/wevre/transit-cljd
   # path: ^1.8.0
 
 dev_dependencies:
